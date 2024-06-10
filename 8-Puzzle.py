@@ -1,0 +1,79 @@
+import heapq
+
+class PuzzleState:
+    def __init__(self, board, goal_state=None, parent=None, g=0):
+        self.board = board
+        self.goal_state = goal_state
+        self.parent = parent
+        self.g = g
+        self.h = self.calculate_heuristic()
+        
+    def __lt__(self, other):
+        return (self.g + self.h) < (other.g + other.h)
+    
+    def __eq__(self, other):
+        return self.board == other.board
+    
+    def __hash__(self):
+        return hash(str(self.board))
+    
+    def calculate_heuristic(self):
+        if self.goal_state is None:
+            return 0
+        return sum(1 for i in range(9) if self.board[i] != self.goal_state[i])
+    
+    def get_neighbors(self):
+        neighbors = []
+        zero_index = self.board.index(0)
+        for delta in [-1, 1, -3, 3]:
+            new_index = zero_index + delta
+            if 0 <= new_index < 9:
+                new_board = self.board[:]
+                new_board[zero_index], new_board[new_index] = new_board[new_index], new_board[zero_index]
+                neighbors.append(PuzzleState(new_board, self.goal_state, self, self.g + 1))
+        return neighbors
+
+def astar(start_state, goal_state):
+    open_list = []
+    closed_set = set()
+    heapq.heappush(open_list, start_state)
+    
+    while open_list:
+        current_state = heapq.heappop(open_list)
+        
+        if current_state.board == goal_state:
+            path = []
+            while current_state:
+                path.append(current_state.board)
+                current_state = current_state.parent
+            return path[::-1]
+        
+        closed_set.add(current_state)
+        
+        for neighbor in current_state.get_neighbors():
+            if neighbor in closed_set:
+                continue
+            if neighbor not in open_list:
+                heapq.heappush(open_list, neighbor)
+            elif neighbor.g < current_state.g:
+                current_state = neighbor
+                
+    return None
+
+# Example usage:
+start_state = [1, 2, 3, 0, 4, 6, 7, 5, 8]
+goal_state = [1, 2, 3, 4, 5, 6, 7, 8, 0]
+
+start_node = PuzzleState(start_state, goal_state)
+path = astar(start_node, goal_state)
+
+if path:
+    print("Solution found!")
+    for step, state in enumerate(path):
+        print(f"Step {step + 1}:")
+        print(state[:3])
+        print(state[3:6])
+        print(state[6:])
+        print()
+else:
+    print("No solution found.")
